@@ -8,7 +8,7 @@ class RootCommand : CliktCommand(name = "briefing") {
     override fun help(context: Context) = "Personal morning health briefing powered by Oura + Claude"
 
     init {
-        subcommands(AuthCommand(), RunCommand())
+        subcommands(AuthCommand(), RunCommand(), StatusCommand())
     }
 
     override fun run() = Unit

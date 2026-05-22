@@ -46,7 +46,8 @@ class StatusCommand : CliktCommand(name = "status") {
         }
         echo("Tokens:  $tokenStatus")
 
-        val lastDate = runCatching { BriefingRepository().lastCachedDate() }.getOrNull()
+        val repo = BriefingRepository()
+        val lastDate = runCatching { repo.lastCachedDate() }.getOrNull()
         echo("History: ${if (lastDate != null) "✓ last briefing on $lastDate" else "no cached briefings yet"}")
     }
 }

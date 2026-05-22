@@ -43,11 +43,15 @@ class ClaudeClient(
         if (!httpResponse.status.isSuccess()) {
             error("Claude API failed (${httpResponse.status}): ${httpResponse.bodyAsText()}")
         }
-        return httpResponse.body<ClaudeResponse>().content.first().text
+        return httpResponse.body<ClaudeResponse>().extractText()
     }
 
     fun close() = http.close()
 }
+
+private fun ClaudeResponse.extractText(): String =
+    content.firstOrNull { it.type == "text" && it.text.isNotBlank() }?.text
+        ?: error("Claude API returned no text block (got: ${content.map { it.type }})")
 
 // ---------- Anthropic API DTOs ----------
 

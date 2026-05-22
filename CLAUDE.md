@@ -35,27 +35,24 @@ CLI (Clikt)
 
 **Config** lives at `~/.config/oura-briefing/config.toml` (Hoplite TOML). OAuth tokens are persisted to `~/.config/oura-briefing/tokens.json` as `OuraTokens`. See `config.example.toml` for the required fields.
 
-**OAuth callback** is handled by a temporary Ktor server on `localhost:8080` (see `Routing.kt` and `application.yaml`).
+**OAuth callback** is handled by an inline `embeddedServer(Netty, port = 8080)` inside `AuthCommand` — no separate `Routing.kt` or `application.yaml`.
 
-## What's Implemented vs. Stubbed
+**Token refresh** is in `AppConfig.loadValidTokens()` — refreshes automatically if `expiresAt - now < 60s`.
 
-**Working:**
-- `BriefingService` — parallel fetching and aggregation logic
-- `Prompts` — system prompt and `userMessage()` formatter (output is in Russian, emoji-prefixed sections)
-- All data models in `HealthModels.kt`
-- Config loading (`AppConfig`, `ConfigPaths`)
+## CLI Usage
 
-**Stubbed (return null/TODO):**
-- `OuraClient.getSleep/getReadiness/getCardiovascular` — the generic `get<T>()` helper is ready; endpoint strings just need filling in
-- `ClaudeClient.generateBriefing` — DTOs are defined; actual HTTP POST needs implementing
-- `RootCommand` — no subcommands registered yet (planned: `auth`, `run`, `status`)
-- `Routing.kt` — `/callback` route for OAuth code capture not yet added
-
-See `.githbub/ISSUES.md` for the prioritized implementation plan (#1–#8).
+```bash
+briefing auth   # OAuth2 browser flow, saves tokens.json
+briefing run    # generate today's briefing
+briefing run --date 2026-05-21
+```
 
 ## Key Notes
 
-- **Package**: `io.github.nottaras.briefing` throughout — all source files, `build.gradle.kts` (`group` and `mainClass`), and `application.yaml`.
+- **Package**: `io.github.nottaras.briefing` throughout — all source files, `build.gradle.kts` (`group` and `mainClass`).
 - **Oura API base URL**: `https://api.ouraring.com/v2/usercollection`
-- **Claude model default**: `claude-sonnet-4-5-20251001` (configurable in `config.toml`)
-- `OuraClient` expects a valid bearer token; token refresh logic goes in the client before the generic `get<T>()` call.
+- **Claude model**: `claude-sonnet-4-6` (configurable in `config.toml`, see `config.example.toml`)
+- Both `OuraClient` and `ClaudeClient` use `expectSuccess = false` — check status before deserializing body.
+- `BriefingResult.text` holds the final string (not `.briefing`).
+
+See `.githbub/ISSUES.md` for planned features (#6–#8): SQLite history, 30-day trends, Telegram bot.

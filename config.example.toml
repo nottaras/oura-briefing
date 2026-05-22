@@ -4,4 +4,4 @@ client-secret = "your-oura-client-secret"
 
 [anthropic]
 api-key = "sk-ant-..."
-model = "claude-sonnet-4-5-20251001"  # или claude-haiku-4-5-20251001 для скорости
+model = "claude-sonnet-4-6"  # или claude-haiku-4-5-20251001 для скорости

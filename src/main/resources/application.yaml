@@ -1,8 +1,0 @@
-ktor:
-  deployment:
-    port: 8080
-  application:
-    modules:
-      - io.github.nottaras.briefing.RoutingKt.configureRouting
-
-kind: Application

@@ -4,6 +4,7 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.Context
 import io.github.nottaras.briefing.config.ConfigPaths
 import io.github.nottaras.briefing.config.OuraTokens
+import io.github.nottaras.briefing.db.BriefingRepository
 import kotlinx.serialization.json.Json
 import java.time.Instant
 import java.time.ZoneId
@@ -44,5 +45,8 @@ class StatusCommand : CliktCommand(name = "status") {
             else -> "✓ valid until $expiryStr"
         }
         echo("Tokens:  $tokenStatus")
+
+        val lastDate = runCatching { BriefingRepository().lastCachedDate() }.getOrNull()
+        echo("History: ${if (lastDate != null) "✓ last briefing on $lastDate" else "no cached briefings yet"}")
     }
 }

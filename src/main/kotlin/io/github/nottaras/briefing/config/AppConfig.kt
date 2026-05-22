@@ -8,6 +8,7 @@ import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.forms.*
+import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.SerialName
@@ -20,7 +21,6 @@ import kotlin.io.path.exists
 import kotlin.io.path.readText
 import kotlin.io.path.writeText
 
-private const val TOKEN_URL = "https://api.ouraring.com/oauth/token"
 private val prettyJson = Json { prettyPrint = true }
 private val lenientJson = Json { ignoreUnknownKeys = true }
 
@@ -55,7 +55,8 @@ internal data class TokenResponse(
 )
 
 object ConfigPaths {
-    val configDir: Path = Path.of(System.getProperty("user.home"), ".config", "oura-briefing")
+    val configDir: Path = System.getenv("OURA_BRIEFING_CONFIG_DIR")?.let(Path::of)
+        ?: Path.of(System.getProperty("user.home"), ".config", "oura-briefing")
     val configFile: Path = configDir.resolve("config.toml")
     val tokensFile: Path = configDir.resolve("tokens.json")
 
@@ -89,22 +90,32 @@ suspend fun loadValidTokens(ouraConfig: OuraConfig): OuraTokens {
 private suspend fun refreshTokens(refreshToken: String, ouraConfig: OuraConfig): OuraTokens {
     val http = HttpClient(CIO) {
         install(ContentNegotiation) { json(lenientJson) }
+        expectSuccess = false
     }
     return try {
-        val response: TokenResponse = http.submitForm(
-            url = TOKEN_URL,
+        val httpResponse = http.submitForm(
+            url = OAuthConstants.TOKEN_URL,
             formParameters = parameters {
                 append("grant_type", "refresh_token")
                 append("refresh_token", refreshToken)
                 append("client_id", ouraConfig.clientId)
                 append("client_secret", ouraConfig.clientSecret)
             }
-        ).body()
+        )
+        when (httpResponse.status) {
+            HttpStatusCode.Unauthorized, HttpStatusCode.BadRequest ->
+                throw TokenExpiredException("Oura session expired. Run `briefing auth` to sign in again.")
+            else -> if (!httpResponse.status.isSuccess()) {
+                error("Token refresh failed (${httpResponse.status}): ${httpResponse.bodyAsText()}")
+            }
+        }
+        val response: TokenResponse = httpResponse.body()
         val newTokens = OuraTokens(
             accessToken = response.accessToken,
             refreshToken = response.refreshToken,
             expiresAt = Instant.now().epochSecond + response.expiresIn,
         )
+        ConfigPaths.ensureConfigDirExists()
         ConfigPaths.tokensFile.writeText(prettyJson.encodeToString(newTokens))
         newTokens
     } finally {

@@ -36,12 +36,14 @@ class RunCommand : CliktCommand(name = "run") {
             }
         }
 
+        val trends = repo.getRecentTrends(before = date)
+
         val config = loadConfig()
         val tokens = loadValidTokens(config.oura)
         val oura = OuraClient(tokens.accessToken)
         val claude = ClaudeClient(config.anthropic.apiKey, config.anthropic.model)
         try {
-            val result = BriefingService(oura, claude).generateBriefing(date)
+            val result = BriefingService(oura, claude).generateBriefing(date, trends)
             repo.save(result)
             echo(result.text)
         } finally {

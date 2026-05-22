@@ -23,22 +23,14 @@ class OuraClient(private val accessToken: String) {
         }
     }
 
-    // TODO: implement OAuth2 flow (issue #1)
-    // TODO: implement token refresh (issue #2)
-    suspend fun getSleep(date: LocalDate = LocalDate.now()): SleepData? {
-        // TODO: implement (issue #3)
-        return null
-    }
+    suspend fun getSleep(date: LocalDate = LocalDate.now()): SleepData? =
+        get("daily_sleep", date)
 
-    suspend fun getReadiness(date: LocalDate = LocalDate.now()): ReadinessData? {
-        // TODO: implement (issue #3)
-        return null
-    }
+    suspend fun getReadiness(date: LocalDate = LocalDate.now()): ReadinessData? =
+        get("daily_readiness", date)
 
-    suspend fun getCardiovascular(date: LocalDate = LocalDate.now()): CardiovascularData? {
-        // TODO: implement (issue #3)
-        return null
-    }
+    suspend fun getCardiovascular(date: LocalDate = LocalDate.now()): CardiovascularData? =
+        get("daily_cardiovascular_age", date)
 
     private suspend inline fun <reified T> get(
         endpoint: String,

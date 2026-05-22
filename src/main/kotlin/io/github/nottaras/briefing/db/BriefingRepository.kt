@@ -6,6 +6,7 @@ import io.github.nottaras.briefing.model.TrendContext
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import java.nio.file.Path
 import java.time.Instant
 import java.time.LocalDate
 
@@ -19,9 +20,17 @@ object Briefings : Table("briefings") {
     override val primaryKey = PrimaryKey(date)
 }
 
-class BriefingRepository {
+data class HistoryRow(
+    val date: LocalDate,
+    val sleepScore: Int?,
+    val readinessScore: Int?,
+    val vascularAge: Int?,
+)
+
+class BriefingRepository(
+    private val dbPath: Path = ConfigPaths.configDir.resolve("history.db"),
+) {
     init {
-        val dbPath = ConfigPaths.configDir.resolve("history.db")
         Database.connect("jdbc:sqlite:$dbPath", driver = "org.sqlite.JDBC")
         transaction { SchemaUtils.createMissingTablesAndColumns(Briefings) }
     }
@@ -64,5 +73,19 @@ class BriefingRepository {
             avgSleepScore = rows.mapNotNull { it[Briefings.sleepScore] }.average().takeIf { it.isFinite() },
             avgReadinessScore = rows.mapNotNull { it[Briefings.readinessScore] }.average().takeIf { it.isFinite() },
         )
+    }
+
+    fun listHistory(days: Int = 30): List<HistoryRow> = transaction {
+        Briefings.selectAll()
+            .orderBy(Briefings.date, SortOrder.DESC)
+            .limit(days)
+            .map { row ->
+                HistoryRow(
+                    date = LocalDate.parse(row[Briefings.date]),
+                    sleepScore = row[Briefings.sleepScore],
+                    readinessScore = row[Briefings.readinessScore],
+                    vascularAge = row[Briefings.vascularAge],
+                )
+            }
     }
 }

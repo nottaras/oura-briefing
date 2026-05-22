@@ -1,13 +1,16 @@
 package io.github.nottaras.briefing.client
 
 import io.github.nottaras.briefing.model.HealthContext
+import io.github.nottaras.briefing.service.Prompts
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -19,12 +22,27 @@ class ClaudeClient(
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true })
         }
+        expectSuccess = false
     }
 
-    // TODO: implement full Claude API call (issue #4)
-    // TODO: add system prompt from Prompts.kt (issue #4)
     suspend fun generateBriefing(context: HealthContext): String {
-        return "TODO: briefing for ${context.date}"
+        val httpResponse = http.post("https://api.anthropic.com/v1/messages") {
+            headers {
+                append("x-api-key", apiKey)
+                append("anthropic-version", "2023-06-01")
+            }
+            contentType(ContentType.Application.Json)
+            setBody(ClaudeRequest(
+                model = model,
+                maxTokens = 400,
+                system = Prompts.system,
+                messages = listOf(Message("user", Prompts.userMessage(context))),
+            ))
+        }
+        if (!httpResponse.status.isSuccess()) {
+            error("Claude API failed (${httpResponse.status}): ${httpResponse.bodyAsText()}")
+        }
+        return httpResponse.body<ClaudeResponse>().content.first().text
     }
 
     fun close() = http.close()
@@ -35,7 +53,7 @@ class ClaudeClient(
 @Serializable
 private data class ClaudeRequest(
     val model: String,
-    val max_tokens: Int,
+    @SerialName("max_tokens") val maxTokens: Int,
     val system: String,
     val messages: List<Message>,
 )

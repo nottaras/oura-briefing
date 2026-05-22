@@ -42,3 +42,4 @@ java -jar build/libs/briefing.jar run
 | `briefing run --date 2026-05-20` | Briefing for a specific date |
 | `briefing run --force` | Regenerate even if cached |
 | `briefing status` | Show token validity and last cached date |
+| `briefing history --days 30` | Table of cached sleep/readiness scores |

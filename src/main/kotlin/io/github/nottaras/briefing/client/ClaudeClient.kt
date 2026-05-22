@@ -1,6 +1,7 @@
 package io.github.nottaras.briefing.client
 
 import io.github.nottaras.briefing.model.HealthContext
+import io.github.nottaras.briefing.model.TrendContext
 import io.github.nottaras.briefing.service.Prompts
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -25,7 +26,7 @@ class ClaudeClient(
         expectSuccess = false
     }
 
-    suspend fun generateBriefing(context: HealthContext): String {
+    suspend fun generateBriefing(context: HealthContext, trends: TrendContext? = null): String {
         val httpResponse = http.post("https://api.anthropic.com/v1/messages") {
             headers {
                 append("x-api-key", apiKey)
@@ -36,7 +37,7 @@ class ClaudeClient(
                 model = model,
                 maxTokens = 400,
                 system = Prompts.system,
-                messages = listOf(Message("user", Prompts.userMessage(context))),
+                messages = listOf(Message("user", Prompts.userMessage(context, trends))),
             ))
         }
         if (!httpResponse.status.isSuccess()) {

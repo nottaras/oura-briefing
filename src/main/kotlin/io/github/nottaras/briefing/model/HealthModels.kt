@@ -68,6 +68,14 @@ data class HealthContext(
     val cardiovascular: CardiovascularData?,
 )
 
+// ---------- Trend averages from history cache ----------
+
+data class TrendContext(
+    val days: Int,
+    val avgSleepScore: Double?,
+    val avgReadinessScore: Double?,
+)
+
 // ---------- Result returned by BriefingService ----------
 
 data class BriefingResult(

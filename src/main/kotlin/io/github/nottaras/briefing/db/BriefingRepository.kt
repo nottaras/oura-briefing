@@ -2,6 +2,7 @@ package io.github.nottaras.briefing.db
 
 import io.github.nottaras.briefing.config.ConfigPaths
 import io.github.nottaras.briefing.model.BriefingResult
+import io.github.nottaras.briefing.model.TrendContext
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -49,5 +50,19 @@ class BriefingRepository {
             .firstOrNull()
             ?.get(Briefings.date)
             ?.let { LocalDate.parse(it) }
+    }
+
+    fun getRecentTrends(before: LocalDate, days: Int = 7): TrendContext? = transaction {
+        val rows = Briefings.selectAll()
+            .where { Briefings.date less before.toString() }
+            .orderBy(Briefings.date, SortOrder.DESC)
+            .limit(days)
+            .toList()
+        if (rows.isEmpty()) return@transaction null
+        TrendContext(
+            days = rows.size,
+            avgSleepScore = rows.mapNotNull { it[Briefings.sleepScore] }.average().takeIf { it.isFinite() },
+            avgReadinessScore = rows.mapNotNull { it[Briefings.readinessScore] }.average().takeIf { it.isFinite() },
+        )
     }
 }

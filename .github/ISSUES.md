@@ -1,104 +1,34 @@
-# MVP Issues
+# MVP Issues — Status
 
-Создай эти issues на GitHub после пуша репо.
+## Done
 
----
+### #1 — OAuth2: `briefing auth`
+- `AuthCommand`: browser, Netty callback on `:8080`, token exchange, `tokens.json`
+- OAuth denial (`?error=`) and bind failures handled; server always stopped in `finally`
 
-## Issue #1 — OAuth2: `briefing auth` command
-**Labels:** `mvp`, `auth`
+### #2 — Token refresh
+- `loadValidTokens()` with 60s skew; `TokenExpiredException` on revoked refresh
 
-Реализовать полный OAuth2 Authorization Code flow:
-- Команда `briefing auth` в CLI
-- Открыть браузер на Oura authorize URL
-- Поднять временный Ktor Netty сервер на localhost:8080
-- Перехватить `?code=` из redirect
-- Обменять code на access_token + refresh_token через POST
-- Сохранить токены в `~/.config/oura-briefing/tokens.json`
-- Остановить локальный сервер
+### #3 — Oura API
+- `getSleep` / `getReadiness` / `getCardiovascular`; errors surface as `OuraApiException`
 
-**Acceptance:** `briefing auth` завершается успешно, tokens.json создан
+### #4 — Claude API
+- Full messages API; first `text` content block; `Prompts` system + user message
 
----
+### #5 — `briefing run`
+- `--date`, `--force`, mordant spinner + panel, `UsageError` for auth/API failures
 
-## Issue #2 — Token refresh
-**Labels:** `mvp`, `auth`
-**Depends on:** #1
+### #6 — `briefing status`
+- Config, token expiry, last cached date
 
-- При старте читать tokens.json
-- Проверять `expiresAt` — если протух, тихо рефрешить
-- Обновлять tokens.json с новыми значениями
-- Если refresh тоже протух — просить запустить `briefing auth`
+### #7 — SQLite history
+- `BriefingRepository`, `history.db`, `briefing history --days N`
 
-**Acceptance:** повторный запуск через 24ч работает без браузера
+### #8 — Trend context
+- 7-day averages from cache passed into Claude prompt
 
----
+## Backlog (not MVP)
 
-## Issue #3 — Oura API: fetch today's data
-**Labels:** `mvp`, `oura`
-**Depends on:** #2
-
-Реализовать три метода в `OuraClient`:
-- `getSleep(date)` → `/v2/usercollection/daily_sleep`
-- `getReadiness(date)` → `/v2/usercollection/daily_readiness`
-- `getCardiovascular(date)` → `/v2/usercollection/daily_cardiovascular_age`
-
-Параллельный вызов через `async/await` уже в `BriefingService`.
-
-**Acceptance:** `HealthContext` заполнен реальными данными
-
----
-
-## Issue #4 — Claude API: generate briefing
-**Labels:** `mvp`, `claude`
-**Depends on:** #3
-
-Реализовать `ClaudeClient.generateBriefing()`:
-- POST на `https://api.anthropic.com/v1/messages`
-- Заголовки: `x-api-key`, `anthropic-version: 2023-06-01`
-- Body: model, max_tokens=400, system prompt из Prompts.kt, user message с данными
-- Парсить ответ → вернуть text
-
-**Acceptance:** получаем осмысленный briefing на реальных данных
-
----
-
-## Issue #5 — `briefing run` CLI command
-**Labels:** `mvp`, `cli`
-**Depends on:** #4
-
-Реализовать команду `briefing run`:
-- Опция `--date` (default: сегодня)
-- Показать spinner пока идут запросы (mordant)
-- Вывести результат красиво через mordant (panel с заголовком, цветные иконки)
-- Обработать ошибки: нет токена → подсказать `briefing auth`
-
-**Acceptance:** `briefing run` выводит briefing в терминале
-
----
-
-## Issue #6 — `briefing status` command
-**Labels:** `nice-to-have`
-
-Показать текущее состояние:
-- Авторизован? Токен протухает когда?
-- Последний успешный запрос к Oura
-- Версия приложения
-
----
-
-## Issue #7 — SQLite history cache
-**Labels:** `phase-2`
-
-Локальный кэш данных по дням:
-- Exposed ORM + SQLite
-- Сохранять HealthContext после каждого успешного fetch
-- `briefing history --days 30` — показать таблицу метрик
-
----
-
-## Issue #8 — Trend context in briefing
-**Labels:** `phase-2`
-**Depends on:** #7
-
-Передавать в Claude последние 7 дней как контекст.
-Тогда Claude может замечать тренды: "HRV снижается третий день подряд".
+- Telegram bot client
+- Flyway migrations instead of `createMissingTablesAndColumns`
+- Configurable OAuth callback port (must match Oura app redirect URI)
